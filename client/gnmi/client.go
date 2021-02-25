@@ -31,7 +31,7 @@ import (
 	"time"
 
 	log "github.com/golang/glog"
-	"google.golang.org/grpc/credentials"
+	//"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc"
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/ygot/ygot"
@@ -39,6 +39,7 @@ import (
 	"github.com/openconfig/gnmi/client/grpcutil"
 	"github.com/openconfig/gnmi/path"
 	"github.com/openconfig/gnmi/value"
+    "google.golang.org/grpc/metadata"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -69,12 +70,15 @@ func New(ctx context.Context, d client.Destination) (client.Impl, error) {
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)),
 	}
 
+    /*
 	switch d.TLS {
 	case nil:
 		opts = append(opts, grpc.WithInsecure())
 	default:
 		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(d.TLS)))
 	}
+    */
+    opts = append(opts, grpc.WithInsecure())
 
 	if d.Credentials != nil {
 		pc := newPassCred(d.Credentials.Username, d.Credentials.Password, true)
@@ -90,6 +94,9 @@ func New(ctx context.Context, d client.Destination) (client.Impl, error) {
 		})
 		opts = append(opts, withContextDialer)
 	}
+
+    gCtx = metadata.AppendToOutgoingContext(gCtx, "x-custom-user", "iadmin")
+    gCtx = metadata.AppendToOutgoingContext(gCtx, "x-custom-pass", "iadmin")
 
 	conn, err := grpc.DialContext(gCtx, d.Addrs[0], opts...)
 	if err != nil {
